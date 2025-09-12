@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Parent {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  password    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  children    Child[]
+  
+  @@map("parents")
+}
+
+model Child {
+  id          String   @id @default(cuid())
+  name        String
+  age         Int
+  avatar      String
+  parentId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  parent      Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  progress    Progress[]
+  activities  Activity[]
+  assessments Assessment[]
+  gameSessions GameSession[]
+  
+  @@map("children")
+}
+
+model Progress {
+  id                String   @id @default(cuid())
+  childId           String
+  overallProgress   Int      @default(0)
+  lettersMastered   Int      @default(0)
+  numbersCompleted  Int      @default(0)
+  gamesPlayed       Int      @default(0)
+  totalPlayTime     Int      @default(0) // in minutes
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  child             Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  
+  @@map("progress")
+}
+
+model Activity {
+  id          String      @id @default(cuid())
+  childId     String
+  type        ActivityType
+  name        String
+  details     String?     // JSON string for additional data
+  duration    Int         // in seconds
+  score       Int?        // percentage or points
+  completed   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  
+  child       Child       @relation(fields: [childId], references: [id], onDelete: Cascade)
+  
+  @@map("activities")
+}
+
+model Assessment {
+  id          String   @id @default(cuid())
+  childId     String
+  type        String   // 'letter-recognition', 'phonics', etc.
+  score       Int      // percentage
+  totalQuestions Int
+  correctAnswers Int
+  timeSpent   Int      // in seconds
+  answers     String   // JSON string of answers
+  createdAt   DateTime @default(now())
+  
+  child       Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  
+  @@map("assessments")
+}
+
+model GameSession {
+  id          String    @id @default(cuid())
+  childId     String
+  gameId      String    // game identifier
+  gameName    String
+  score       Int?
+  level       Int       @default(1)
+  duration    Int       // in seconds
+  completed   Boolean   @default(false)
+  data        String?   // JSON string for game-specific data
+  createdAt   DateTime  @default(now())
+  
+  child       Child     @relation(fields: [childId], references: [id], onDelete: Cascade)
+  
+  @@map("game_sessions")
+}
+
+model Settings {
+  id          String   @id @default(cuid())
+  userId      String   @unique // parent id
+  preferences String   // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("settings")
+}
+
+enum ActivityType {
+  LEARNING
+  GAME
+  ASSESSMENT
+  EXERCISE
+}
